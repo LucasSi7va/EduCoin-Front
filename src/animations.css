@@ -1,0 +1,113 @@
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-price {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+
+.coin-card {
+  animation: fadeInUp 0.4s ease both;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+.coin-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: #4caf50 !important;
+  box-shadow: 0 8px 30px rgba(76, 175, 80, 0.15);
+}
+
+.coin-card:hover img {
+  transform: rotate(8deg) scale(1.1);
+  transition: transform 0.3s ease;
+}
+.coin-card img {
+  transition: transform 0.3s ease;
+}
+
+
+.coin-price {
+  animation: pulse-price 2.5s infinite;
+  border-radius: 8px;
+}
+
+
+.btn-detail {
+  position: relative;
+  overflow: hidden;
+  transition: background 0.2s, transform 0.1s, border-color 0.2s !important;
+}
+.btn-detail::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  background-size: 200% 100%;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.btn-detail:hover {
+  border-color: #4caf50 !important;
+  transform: scale(1.02);
+}
+.btn-detail:hover::after {
+  opacity: 1;
+  animation: shimmer 0.6s ease;
+}
+.btn-detail:active {
+  transform: scale(0.97) !important;
+}
+
+
+.btn-toggle-modo {
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s !important;
+}
+.btn-toggle-modo:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4) !important;
+}
+.btn-toggle-modo:active {
+  transform: scale(0.96) translateY(0) !important;
+}
+
+
+.btn-filtrar,
+.btn-limpar {
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s !important;
+}
+.btn-filtrar:hover,
+.btn-limpar:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.btn-filtrar:active,
+.btn-limpar:active {
+  transform: scale(0.95) !important;
+}
+
+
+.search-input:focus,
+.filter-input:focus {
+  border-color: #4caf50 !important;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15) !important;
+  outline: none;
+}
+.search-input,
+.filter-input {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* ── Delay escalonado nos cards (1º a 6º) ── */
+.coin-card:nth-child(1) { animation-delay: 0.05s; }
+.coin-card:nth-child(2) { animation-delay: 0.10s; }
+.coin-card:nth-child(3) { animation-delay: 0.15s; }
+.coin-card:nth-child(4) { animation-delay: 0.20s; }
+.coin-card:nth-child(5) { animation-delay: 0.25s; }
+.coin-card:nth-child(6) { animation-delay: 0.30s; }
