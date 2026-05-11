@@ -104,10 +104,38 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-/* ── Delay escalonado nos cards (1º a 6º) ── */
+
 .coin-card:nth-child(1) { animation-delay: 0.05s; }
 .coin-card:nth-child(2) { animation-delay: 0.10s; }
 .coin-card:nth-child(3) { animation-delay: 0.15s; }
 .coin-card:nth-child(4) { animation-delay: 0.20s; }
 .coin-card:nth-child(5) { animation-delay: 0.25s; }
 .coin-card:nth-child(6) { animation-delay: 0.30s; }
+
+
+
+.glass-card {
+  background: rgba(30, 30, 30, 0.65);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  animation: fadeInUp 0.6s ease both; 
+}
+
+
+.auth-background {
+  background: linear-gradient(-45deg, #0f172a, #1e293b, #000000, #1e1b4b);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+
+.overlay-foto:hover {
+  opacity: 1 !important;
+}

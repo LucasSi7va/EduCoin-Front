@@ -14,7 +14,7 @@ function ListaMoedas() {
   const [carregando, setCarregando] = useState(false)
   const { isModoIdoso, toggleModoIdoso } = useAcessibilidade()
 
-  // Carrega todas as moedas na inicialização
+
   useEffect(() => {
     carregarTodas()
   }, [])
@@ -27,7 +27,7 @@ function ListaMoedas() {
       .finally(() => setCarregando(false))
   }
 
-  // Busca por nome (debounce simples com useCallback)
+
   const buscarPorNome = useCallback((nome: string) => {
     if (!nome.trim()) { carregarTodas(); return }
     setCarregando(true)
@@ -37,13 +37,12 @@ function ListaMoedas() {
       .finally(() => setCarregando(false))
   }, [])
 
-  // Dispara busca por nome enquanto digita
+
   useEffect(() => {
     const timer = setTimeout(() => buscarPorNome(busca), 400)
     return () => clearTimeout(timer)
   }, [busca, buscarPorNome])
 
-  // Aplica filtros de preço/rank
   function aplicarFiltros() {
     if (!precoMin && !precoMax && !rank) { carregarTodas(); return }
     setCarregando(true)
@@ -67,17 +66,110 @@ function ListaMoedas() {
 
   const fs = (idoso: string, normal: string) => isModoIdoso ? idoso : normal
 
+  const usuario = JSON.parse(
+  localStorage.getItem('usuario') || 'null'
+);
+
+
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', color: 'white', backgroundColor: '#121212', minHeight: '100vh' }}>
       
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '20px' }}>
+        
         <h1 style={{ fontSize: fs('40px', '28px') }}>CoinEdu</h1>
+        
+        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+          {/* Se não estiver logado, mostra botão de login */}
+      {usuario ? (
+
+<Link
+  to="/PerfilUsuario"
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    textDecoration: 'none'
+  }}
+>
+
+    <img
+      src={
+  usuario.fotoPerfil ||
+  `https://ui-avatars.com/api/?name=${usuario.nome}&background=333&color=fff`
+}
+      alt="perfil"
+      style={{
+        width: isModoIdoso ? '60px' : '40px',
+        height: isModoIdoso ? '60px' : '40px',
+        borderRadius: '50%',
+        border: '2px solid #007bff'
+      }}
+    />
+
+    <span
+      style={{
+        color: 'white',
+        fontSize: fs('22px', '16px'),
+        fontWeight: 'bold'
+      }}
+    >
+      {usuario.nome}
+    </span>
+
+    <button
+      onClick={() => {
+        localStorage.removeItem('usuario');
+        window.location.reload();
+      }}
+      style={{
+        padding: '8px 12px',
+        backgroundColor: '#ff4444',
+        color: 'white',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer'
+      }}
+    >
+      Sair
+    </button>
+
+  </Link>
+
+) : (
+
+  <>
+    <Link
+      to="/login"
+      style={{
+        color: 'white',
+        textDecoration: 'none',
+        fontSize: fs('20px', '16px')
+      }}
+    >
+      Entrar
+    </Link>
+
+    <Link
+      to="/cadastro"
+      style={{
+        color: '#007bff',
+        textDecoration: 'none',
+        fontSize: fs('20px', '16px'),
+        fontWeight: 'bold'
+      }}
+    >
+      Criar Conta
+    </Link>
+  </>
+
+)}
+
         <button onClick={toggleModoIdoso} style={{ padding: isModoIdoso ? '20px 40px' : '10px 20px', fontSize: fs('24px', '16px'), backgroundColor: isModoIdoso ? '#FFD700' : '#007bff', color: isModoIdoso ? 'black' : 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }} className="btn-toggle-modo" >
           {isModoIdoso ? '✨ Modo Padrão' : '👴 Modo Acessível'}
         </button>
+        </div>
       </header>
 
-      {/* Barra de Busca */}
       <div style={{ marginBottom: '20px' }}>
         <input
           type="text"
@@ -89,7 +181,6 @@ function ListaMoedas() {
        />
       </div>
 
-      {/* Filtros */}
       <div style={{ display: 'flex', gap: '12px', marginBottom: '30px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: '140px' }}>
           <label style={{ fontSize: fs('18px', '13px'), color: '#aaa' }}>Preço mínimo (R$)</label>
@@ -132,14 +223,14 @@ function ListaMoedas() {
         </button>
       </div>
 
-      {/* Feedback de estado */}
+  
       {carregando && <p style={{ color: '#aaa', textAlign: 'center', fontSize: fs('22px', '16px') }}>Buscando...</p>}
       {!carregando && moedas.length === 0 && <p style={{ color: '#aaa', textAlign: 'center', fontSize: fs('22px', '16px') }}>Nenhuma moeda encontrada.</p>}
 
-      {/* Grid de Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: isModoIdoso ? '30px' : '20px' }}  className="coin-card" >
+   
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: isModoIdoso ? '30px' : '20px' }}  >
         {moedas.map(moeda => (
-          <div key={moeda.id} style={{ backgroundColor: '#1e1e1e', borderRadius: '15px', padding: isModoIdoso ? '30px' : '20px', border: isModoIdoso ? '4px solid #FFD700' : '1px solid #333', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+          <div key={moeda.id} style={{ backgroundColor: '#1e1e1e', borderRadius: '15px', padding: isModoIdoso ? '30px' : '20px', border: isModoIdoso ? '4px solid #FFD700' : '1px solid #333', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }} className="coin-card">
             <img src={moeda.imagem} alt={moeda.nome} style={{ width: isModoIdoso ? '100px' : '50px', height: isModoIdoso ? '100px' : '50px' }} />
             <div style={{ fontSize: fs('28px', '20px'), fontWeight: 'bold' }}>
               {moeda.nome} <span style={{ opacity: 0.6 }}>({moeda.simbolo?.toUpperCase()})</span>
@@ -156,5 +247,5 @@ function ListaMoedas() {
     </div>
   )
 }
-
+ 
 export default ListaMoedas
