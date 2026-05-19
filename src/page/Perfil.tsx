@@ -43,7 +43,7 @@ async function salvarPerfil() {
   };
 
   try {
-    // ADICIONADO O /usuario NA URL
+   
     const response = await fetch(`http://localhost:8080/usuario/editar-fotoPerfil/capaPerfil`, {
       method: 'POST',
       headers: {
@@ -61,9 +61,9 @@ async function salvarPerfil() {
       localStorage.setItem('usuario', JSON.stringify(usuarioAtualizado));
 
       alert('Perfil atualizado com sucesso!');
-      navigate('/'); // Certifique-se que essa rota existe no seu App.js/router
+      navigate('/'); 
     } else {
-      // Se cair aqui, o Java retornou erro (ex: 400, 500)
+    
       const errorData = await response.json().catch(() => ({}));
       alert('Erro ao salvar: ' + (errorData.error || 'Erro desconhecido'));
     }

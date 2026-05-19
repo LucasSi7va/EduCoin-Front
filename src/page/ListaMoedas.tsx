@@ -12,12 +12,29 @@ function ListaMoedas() {
   const [precoMax, setPrecoMax] = useState('')
   const [rank, setRank] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [favoritando, setFavoritando] = useState<string | null>(null)
+  const [apenasFantavoritos, setApenasFantavoritos] = useState(false)
   const { isModoIdoso, toggleModoIdoso } = useAcessibilidade()
 
+  // ← usuario vira state para re-renderizar quando mudar
+  const [usuario, setUsuario] = useState(() =>
+    JSON.parse(localStorage.getItem('usuario') || 'null')
+  );
 
+  // ← escuta mudanças no localStorage (favoritar/desfavoritar)
   useEffect(() => {
-    carregarTodas()
-  }, [])
+    function syncUsuario() {
+      setUsuario(JSON.parse(localStorage.getItem('usuario') || 'null'));
+    }
+    window.addEventListener('storage', syncUsuario);
+    return () => window.removeEventListener('storage', syncUsuario);
+  }, []);
+
+  const moedasExibidas = apenasFantavoritos
+    ? moedas.filter(m => (usuario?.moedasFavoritas || []).includes(m.id))
+    : moedas;
+
+  useEffect(() => { carregarTodas() }, [])
 
   function carregarTodas() {
     setCarregando(true)
@@ -27,7 +44,6 @@ function ListaMoedas() {
       .finally(() => setCarregando(false))
   }
 
-
   const buscarPorNome = useCallback((nome: string) => {
     if (!nome.trim()) { carregarTodas(); return }
     setCarregando(true)
@@ -36,7 +52,6 @@ function ListaMoedas() {
       .catch(err => console.error(err))
       .finally(() => setCarregando(false))
   }, [])
-
 
   useEffect(() => {
     const timer = setTimeout(() => buscarPorNome(busca), 400)
@@ -49,7 +64,7 @@ function ListaMoedas() {
     const params = new URLSearchParams()
     if (precoMin) params.append('precoMin', precoMin)
     if (precoMax) params.append('precoMax', precoMax)
-    if (rank)     params.append('rank', rank)
+    if (rank) params.append('rank', rank)
     api.get(`/coin/filtra?${params.toString()}`)
       .then(res => setMoedas(res.data))
       .catch(err => console.error(err))
@@ -57,18 +72,43 @@ function ListaMoedas() {
   }
 
   function limparFiltros() {
-    setBusca('')
-    setPrecoMin('')
-    setPrecoMax('')
-    setRank('')
+    setBusca(''); setPrecoMin(''); setPrecoMax(''); setRank('')
     carregarTodas()
   }
 
   const fs = (idoso: string, normal: string) => isModoIdoso ? idoso : normal
 
-  const usuario = JSON.parse(
-  localStorage.getItem('usuario') || 'null'
-);
+  async function toggleFavorito(e: React.MouseEvent, moedaId: string) {
+    e.preventDefault();
+    if (!usuario) { alert('Faça login para favoritar!'); return; }
+
+    // ← relê sempre o localStorage mais recente
+    const usuarioAtual = JSON.parse(localStorage.getItem('usuario') || 'null');
+    const favoritosLocais: string[] = usuarioAtual?.moedasFavoritas || [];
+    const jaFavorita = favoritosLocais.includes(moedaId);
+    setFavoritando(moedaId);
+
+    try {
+      if (jaFavorita) {
+        await api.delete(`/usuario/carteira/remover?usuarioId=${usuarioAtual.id}&moeda=${moedaId}`);
+        const novaLista = favoritosLocais.filter((m: string) => m !== moedaId);
+        const atualizado = { ...usuarioAtual, moedasFavoritas: novaLista };
+        localStorage.setItem('usuario', JSON.stringify(atualizado));
+        setUsuario(atualizado); // ← atualiza o state direto também
+      } else {
+        await api.post(`/usuario/carteira/favoritar?usuarioId=${usuarioAtual.id}&moeda=${moedaId}`);
+        const novaLista = [...favoritosLocais, moedaId];
+        const atualizado = { ...usuarioAtual, moedasFavoritas: novaLista };
+        localStorage.setItem('usuario', JSON.stringify(atualizado));
+        setUsuario(atualizado); // ← atualiza o state direto também
+      }
+      window.dispatchEvent(new Event('storage'));
+    } catch {
+      alert('Erro ao atualizar favoritos.');
+    } finally {
+      setFavoritando(null);
+    }
+  }
 
 
   return (
@@ -160,6 +200,15 @@ function ListaMoedas() {
     >
       Criar Conta
     </Link>
+
+
+
+    <Link
+  to="/tutorial"
+  style={{ color: '#f59e0b', textDecoration: 'none', fontSize: fs('20px', '16px') }}
+>
+  📖 Tutorial
+</Link>
   </>
 
 )}
@@ -215,6 +264,25 @@ function ListaMoedas() {
             className="filter-input"
         />
         </div>
+
+      {usuario && (
+        <button
+          onClick={() => setApenasFantavoritos(prev => !prev)}
+          style={{
+            padding: isModoIdoso ? '14px 30px' : '10px 20px',
+            fontSize: fs('20px', '14px'),
+            backgroundColor: apenasFantavoritos ? '#f59e0b' : '#333',
+            color: 'white',
+            border: '1px solid #555',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 'bold'
+          }}
+        >
+          {apenasFantavoritos ? '⭐ Todos' : '⭐ Favoritos'}
+        </button>
+      )}
+
         <button onClick={aplicarFiltros} style={{ padding: isModoIdoso ? '14px 30px' : '10px 20px', fontSize: fs('20px', '14px'), backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }} className="btn-filtrar">
           Filtrar
         </button>
@@ -225,11 +293,11 @@ function ListaMoedas() {
 
   
       {carregando && <p style={{ color: '#aaa', textAlign: 'center', fontSize: fs('22px', '16px') }}>Buscando...</p>}
-      {!carregando && moedas.length === 0 && <p style={{ color: '#aaa', textAlign: 'center', fontSize: fs('22px', '16px') }}>Nenhuma moeda encontrada.</p>}
+      {!carregando && moedasExibidas.length === 0 && <p style={{ color: '#aaa', textAlign: 'center', fontSize: fs('22px', '16px') }}>Nenhuma moeda encontrada.</p>}
 
    
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: isModoIdoso ? '30px' : '20px' }}  >
-        {moedas.map(moeda => (
+        {moedasExibidas.map(moeda => (
           <div key={moeda.id} style={{ backgroundColor: '#1e1e1e', borderRadius: '15px', padding: isModoIdoso ? '30px' : '20px', border: isModoIdoso ? '4px solid #FFD700' : '1px solid #333', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }} className="coin-card">
             <img src={moeda.imagem} alt={moeda.nome} style={{ width: isModoIdoso ? '100px' : '50px', height: isModoIdoso ? '100px' : '50px' }} />
             <div style={{ fontSize: fs('28px', '20px'), fontWeight: 'bold' }}>
@@ -238,6 +306,26 @@ function ListaMoedas() {
             <div style={{ fontSize: fs('32px', '22px'), color: '#4caf50', fontWeight: '900', backgroundColor: isModoIdoso ? '#000' : 'transparent', padding: isModoIdoso ? '10px' : '0', borderRadius: '8px' }} className="coin-price" >
               R$ {moeda.precoAtual?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
+            {usuario && (
+            <button
+              onClick={(e) => toggleFavorito(e, moeda.id)}
+              disabled={favoritando === moeda.id}
+              style={{
+                width: '100%',
+                padding: isModoIdoso ? '14px' : '10px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: (usuario.moedasFavoritas || []).includes(moeda.id) ? '#ff4444' : '#f59e0b',
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: fs('20px', '14px'),
+                cursor: favoritando === moeda.id ? 'not-allowed' : 'pointer',
+                opacity: favoritando === moeda.id ? 0.7 : 1,
+              }}
+            >
+              {favoritando === moeda.id ? '⏳' : (usuario.moedasFavoritas || []).includes(moeda.id) ? '💔 Remover' : '⭐ Favoritar'}
+            </button>
+          )}
             <Link to={`/moeda/${moeda.id}`} style={{ marginTop: '10px', width: '100%', padding: '12px', borderRadius: '8px', backgroundColor: '#333', color: 'white', border: '1px solid #555', cursor: 'pointer', fontSize: fs('20px', '14px'), textDecoration: 'none', display: 'block', boxSizing: 'border-box' }} className="btn-detail" >
               Ver Detalhes
             </Link>
