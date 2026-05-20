@@ -201,3 +201,6 @@ e para rodar o sistema basta digitar:
 ```
 npm run dev
 ```
+e precisa esta com o backend rodando para o programa funcionar
+
+# ![CoinEdu-backend]([https://github.com/LucasSi7va/CoinEdu-Backend/blob/main/README.md](https://github.com/LucasSi7va/CoinEdu-Backend/tree/main))
