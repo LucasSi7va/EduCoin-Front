@@ -82,6 +82,19 @@ export function Cadastro() {
             <button type="submit" disabled={loading} className="btn-filtrar" style={{ padding: '14px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
               {loading ? 'Enviando...' : 'Enviar Código'}
             </button>
+             <button
+  type="button"
+  onClick={() => navigate('/')}
+  style={{
+    background: 'none',
+    border: 'none',
+    color: '#888',
+    cursor: 'pointer',
+    textDecoration: 'underline'
+  }}
+>
+  Voltar para moedas
+</button>
           </form>
         ) : (
           <form onSubmit={handleSubmitCodigo} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>

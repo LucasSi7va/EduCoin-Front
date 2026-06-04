@@ -3,6 +3,9 @@ import { GraficoMoeda } from "../components/GraficoMoeda";
 import { useAcessibilidade } from "../contexts/AcessibilidadeContext";
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import { useFala, useTalkBack } from "../hooks/UseTalkBack";
+import { useModoLeitura } from "../contexts/ModoLeituraContext";
+
 
 export function DetalhesMoeda() {
   const { id } = useParams();
@@ -13,6 +16,18 @@ export function DetalhesMoeda() {
   const [resultadoSimulacao, setResultadoSimulacao] = useState<any>(null);
   const [loadingFav, setLoadingFav] = useState(false);
   const [loadingSim, setLoadingSim] = useState(false);
+  const {
+    modoLeitura,
+    setModoLeitura
+  } = useModoLeitura();
+  
+const fala = useFala();
+
+const {
+  talkClick,
+  estiloTalkBack
+} = useTalkBack(modoLeitura, fala);
+  
   const navigate = useNavigate();
 
   const usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
@@ -26,6 +41,21 @@ export function DetalhesMoeda() {
 
   const infoEducativa = conteudosEducativos.find(c => c.id === id);
 
+
+function toggleModoLeituraHandler() {
+  const novo = !modoLeitura;
+
+  setModoLeitura(novo);
+
+  if (novo) {
+    fala.falar(
+      "Modo leitura ativado. Toque uma vez para ouvir e duas vezes para confirmar."
+    );
+  } else {
+    fala.parar();
+  }
+}
+  
   useEffect(() => {
     api.get(`/coin/${id}/historico/lista?dias=7`)
       .then(res => {
@@ -81,8 +111,14 @@ export function DetalhesMoeda() {
     <div style={{ padding: '20px', color: 'white', backgroundColor: '#121212', minHeight: '100vh' }}>
 
     <button
-  onClick={() => navigate(-1)}
-  style={{
+  onClick={talkClick(
+  "voltar",
+  "Voltar para a página anterior. Toque novamente para confirmar.",
+  () => navigate(-1)
+)}
+style={estiloTalkBack(
+  "voltar",
+  {
     padding: isModoIdoso ? '20px 36px' : '10px 20px',
     marginBottom: '30px',
     fontSize: fs('24px', '16px'),
@@ -94,7 +130,8 @@ export function DetalhesMoeda() {
     display: 'flex',
     alignItems: 'center',
     gap: '8px'
-  }}
+  }
+)}
 >
   ⬅️ Voltar
 </button>
@@ -161,16 +198,33 @@ export function DetalhesMoeda() {
           <input
             type="number"
             placeholder="R$ Quanto quer investir?"
+            aria-label="Valor para investir"
             style={{ padding: '15px', fontSize: fs('22px', '20px'), borderRadius: '10px', width: '80%', maxWidth: '400px', backgroundColor: '#121212', color: 'white', border: '1px solid #444' }}
             onChange={(e) => setValorSimulacao(Number(e.target.value))}
           />
 
           <div style={{ marginTop: '16px' }}>
             <button
-              onClick={simularCompra}
+              onClick={talkClick(
+  "simular",
+  "Simular compra desta moeda. Toque novamente para confirmar.",
+  () => simularCompra()
+)}
               disabled={loadingSim}
-              style={{ padding: fs('20px 40px', '12px 28px'), fontSize: fs('22px', '16px'), backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', opacity: loadingSim ? 0.7 : 1 }}
-            >
+  style={estiloTalkBack(
+  "simular",
+  {
+    padding: fs('20px 40px', '12px 28px'),
+    fontSize: fs('22px', '16px'),
+    backgroundColor: '#007bff',
+    color: 'white',
+    border: 'none',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    opacity: loadingSim ? 0.7 : 1
+  }
+)}          >
               {loadingSim ? '⏳ Calculando...' : '📊 Simular compra'}
             </button>
           </div>
@@ -198,6 +252,75 @@ export function DetalhesMoeda() {
           </p>
         </div>
       )}
+
+<button
+  onClick={toggleModoLeituraHandler}
+  aria-pressed={modoLeitura}
+  aria-label={
+    modoLeitura
+      ? 'Desativar modo leitura TalkBack'
+      : 'Ativar modo leitura TalkBack'
+  }
+  title={
+    modoLeitura
+      ? 'Desativar modo leitura'
+      : 'Ativar modo leitura'
+  }
+  style={{
+    position: 'fixed',
+    bottom: isModoIdoso ? '32px' : '24px',
+    right: isModoIdoso ? '32px' : '24px',
+    width: isModoIdoso ? '80px' : '62px',
+    height: isModoIdoso ? '80px' : '62px',
+    borderRadius: '50%',
+    backgroundColor: modoLeitura ? '#4caf50' : '#1e3a5f',
+    color: 'white',
+    border: `2px solid ${
+      modoLeitura ? '#4caf50' : '#3b82f6'
+    }`,
+    cursor: 'pointer',
+    fontSize: isModoIdoso ? '30px' : '22px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: modoLeitura
+      ? '0 0 0 6px rgba(76,175,80,0.25), 0 4px 20px rgba(0,0,0,0.5)'
+      : '0 4px 20px rgba(0,0,0,0.4)',
+    transition: 'all 0.2s',
+    zIndex: 1000,
+    animation: modoLeitura
+      ? 'fab-pulse 1.6s ease-in-out infinite'
+      : 'none',
+  }}
+>
+  🔊
+</button>
+
+{modoLeitura && (
+  <div
+    style={{
+      position: 'fixed',
+      bottom: isModoIdoso ? '122px' : '96px',
+      right: isModoIdoso ? '16px' : '12px',
+      backgroundColor: '#1e1e1e',
+      border: '1px solid #4caf50',
+      borderRadius: '10px',
+      padding: '8px 12px',
+      fontSize: '12px',
+      color: '#4caf50',
+      zIndex: 999,
+      maxWidth: '180px',
+      textAlign: 'center',
+      lineHeight: '1.5',
+      pointerEvents: 'none',
+    }}
+  >
+    1º toque = ouvir
+    <br />
+    2º toque = confirmar
+  </div>
+)}
+
     </div>
   );
   
