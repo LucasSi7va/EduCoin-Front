@@ -6,7 +6,6 @@ import api from "../services/api";
 import { useFala, useTalkBack } from "../hooks/UseTalkBack";
 import { useModoLeitura } from "../contexts/ModoLeituraContext";
 
-
 export function DetalhesMoeda() {
   const { id } = useParams();
   const { isModoIdoso } = useAcessibilidade();
@@ -16,18 +15,10 @@ export function DetalhesMoeda() {
   const [resultadoSimulacao, setResultadoSimulacao] = useState<any>(null);
   const [loadingFav, setLoadingFav] = useState(false);
   const [loadingSim, setLoadingSim] = useState(false);
-  const {
-    modoLeitura,
-    setModoLeitura
-  } = useModoLeitura();
-  
-const fala = useFala();
+  const { modoLeitura, setModoLeitura } = useModoLeitura();
 
-const {
-  talkClick,
-  estiloTalkBack
-} = useTalkBack(modoLeitura, fala);
-  
+  const fala = useFala();
+  const { talkClick, estiloTalkBack } = useTalkBack(modoLeitura, fala);
   const navigate = useNavigate();
 
   const usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
@@ -41,21 +32,16 @@ const {
 
   const infoEducativa = conteudosEducativos.find(c => c.id === id);
 
-
-function toggleModoLeituraHandler() {
-  const novo = !modoLeitura;
-
-  setModoLeitura(novo);
-
-  if (novo) {
-    fala.falar(
-      "Modo leitura ativado. Toque uma vez para ouvir e duas vezes para confirmar."
-    );
-  } else {
-    fala.parar();
+  function toggleModoLeituraHandler() {
+    const novo = !modoLeitura;
+    setModoLeitura(novo);
+    if (novo) {
+      fala.falar("Modo leitura ativado. Toque uma vez para ouvir e duas vezes para confirmar.");
+    } else {
+      fala.parar();
+    }
   }
-}
-  
+
   useEffect(() => {
     api.get(`/coin/${id}/historico/lista?dias=7`)
       .then(res => {
@@ -82,7 +68,7 @@ function toggleModoLeituraHandler() {
         localStorage.setItem('usuario', JSON.stringify({ ...usuario, moedasFavoritas: novaLista }));
         setIsFavorita(true);
       }
-    } catch (err: any) {
+    } catch {
       alert('Erro ao atualizar favoritos.');
     } finally {
       setLoadingFav(false);
@@ -95,7 +81,7 @@ function toggleModoLeituraHandler() {
     setLoadingSim(true);
     try {
       const res = await api.get(`/usuario/carteira/simulacao`, {
-        params: { moeda: id, valorCompra: valorSimulacao, usuarioId: usuario.id , precoAtual : precoAtual }
+        params: { moeda: id, valorCompra: valorSimulacao, usuarioId: usuario.id, precoAtual }
       });
       setResultadoSimulacao(res.data);
     } catch {
@@ -105,59 +91,27 @@ function toggleModoLeituraHandler() {
     }
   }
 
-  const fs = (idoso: string, normal: string) => isModoIdoso ? idoso : normal;
-
   return (
-    <div style={{ padding: '20px', color: 'white', backgroundColor: '#121212', minHeight: '100vh' }}>
+    <div className="dm-root">
 
-    <button
-  onClick={talkClick(
-  "voltar",
-  "Voltar para a página anterior. Toque novamente para confirmar.",
-  () => navigate(-1)
-)}
-style={estiloTalkBack(
-  "voltar",
-  {
-    padding: isModoIdoso ? '20px 36px' : '10px 20px',
-    marginBottom: '30px',
-    fontSize: fs('24px', '16px'),
-    cursor: 'pointer',
-    backgroundColor: '#333',
-    color: 'white',
-    border: '1px solid #555',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  }
-)}
->
-  ⬅️ Voltar
-</button>
+      {/* Botão Voltar */}
+      <button
+        onClick={talkClick("voltar", "Voltar para a página anterior. Toque novamente para confirmar.", () => navigate(-1))}
+        style={estiloTalkBack("voltar", {})}
+        className={`dm-btn-voltar ${isModoIdoso ? 'idoso' : ''}`}
+      >
+        ⬅️ Voltar
+      </button>
 
-      {/* Cabeçalho com botão de favorito */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <h1 style={{ fontSize: fs('50px', '32px'), margin: 0 }}>
-          {id?.toUpperCase()}
-        </h1>
+      {/* Cabeçalho com favorito */}
+      <div className="dm-header">
+        <h1 className={`dm-title ${isModoIdoso ? 'idoso' : ''}`}>{id?.toUpperCase()}</h1>
 
         {usuario && (
           <button
             onClick={toggleFavorito}
             disabled={loadingFav}
-            style={{
-              padding: fs('20px 36px', '12px 24px'),
-              fontSize: fs('22px', '16px'),
-              fontWeight: 'bold',
-              borderRadius: '12px',
-              border: 'none',
-              cursor: loadingFav ? 'not-allowed' : 'pointer',
-              backgroundColor: isFavorita ? '#ff4444' : '#f59e0b',
-              color: 'white',
-              opacity: loadingFav ? 0.7 : 1,
-              transition: 'all 0.2s'
-            }}
+            className={`dm-btn-fav ${isFavorita ? 'ativo' : ''} ${isModoIdoso ? 'idoso' : ''}`}
           >
             {loadingFav ? '⏳' : isFavorita ? '💔 Remover dos favoritos' : '⭐ Adicionar aos favoritos'}
           </button>
@@ -165,33 +119,33 @@ style={estiloTalkBack(
       </div>
 
       {/* Gráfico */}
-      <div style={{ marginBottom: '40px' }}>
-        <h2 style={{ fontSize: fs('30px', '22px'), marginBottom: '10px' }}>Evolução do Valor</h2>
+      <div className="dm-section">
+        <h2 className={`dm-section-title ${isModoIdoso ? 'idoso' : ''}`}>Evolução do Valor</h2>
         {historico.length > 0 ? <GraficoMoeda dados={historico} /> : <p>Carregando gráfico...</p>}
       </div>
 
       {/* Seção Educativa */}
-      <div style={{ backgroundColor: '#1e1e1e', padding: isModoIdoso ? '40px' : '25px', borderRadius: '20px', border: isModoIdoso ? '5px solid #FFD700' : '1px solid #444', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
-        <h2 style={{ color: '#FFD700', fontSize: fs('40px', '26px'), marginBottom: '15px' }}>
+      <div className={`dm-edu-card ${isModoIdoso ? 'idoso' : ''}`}>
+        <h2 className={`dm-edu-title ${isModoIdoso ? 'idoso' : ''}`}>
           {infoEducativa?.titulo || "Aprendendo sobre esta moeda"}
         </h2>
-        <p style={{ fontSize: fs('28px', '18px'), lineHeight: '1.6', color: '#ccc' }}>
+        <p className={`dm-edu-desc ${isModoIdoso ? 'idoso' : ''}`}>
           {infoEducativa?.descricao || "Esta é uma moeda digital protegida por criptografia."}
         </p>
         {isModoIdoso && infoEducativa && (
-          <div style={{ marginTop: '25px', padding: '20px', backgroundColor: '#2a2a2a', borderRadius: '15px', borderLeft: '8px solid #FFD700' }}>
-            <p style={{ fontSize: '26px', color: '#FFD700', margin: 0 }}>
+          <div className="dm-edu-dica">
+            <p className="dm-edu-dica-text">
               <strong>👵 Explicação Simples:</strong> {infoEducativa.dicaIdoso}
             </p>
           </div>
         )}
       </div>
 
-      {/* Simulador — só aparece se for favorita */}
+      {/* Simulador */}
       {isFavorita && usuario ? (
-        <div style={{ marginTop: '40px', backgroundColor: '#1e1e1e', padding: isModoIdoso ? '40px' : '28px', borderRadius: '20px', border: '1px solid #2a2a2a', textAlign: 'center' }}>
-          <h3 style={{ fontSize: fs('30px', '22px'), marginBottom: '8px' }}>💰 Simulador de Compra</h3>
-          <p style={{ color: '#aaa', fontSize: fs('22px', '14px'), marginBottom: '20px' }}>
+        <div className={`dm-simulator ${isModoIdoso ? 'idoso' : ''}`}>
+          <h3 className={`dm-sim-title ${isModoIdoso ? 'idoso' : ''}`}>💰 Simulador de Compra</h3>
+          <p className={`dm-sim-price ${isModoIdoso ? 'idoso' : ''}`}>
             Preço atual: R$ {precoAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
 
@@ -199,129 +153,277 @@ style={estiloTalkBack(
             type="number"
             placeholder="R$ Quanto quer investir?"
             aria-label="Valor para investir"
-            style={{ padding: '15px', fontSize: fs('22px', '20px'), borderRadius: '10px', width: '80%', maxWidth: '400px', backgroundColor: '#121212', color: 'white', border: '1px solid #444' }}
+            className={`dm-sim-input ${isModoIdoso ? 'idoso' : ''}`}
             onChange={(e) => setValorSimulacao(Number(e.target.value))}
           />
 
           <div style={{ marginTop: '16px' }}>
             <button
-              onClick={talkClick(
-  "simular",
-  "Simular compra desta moeda. Toque novamente para confirmar.",
-  () => simularCompra()
-)}
+              onClick={talkClick("simular", "Simular compra desta moeda. Toque novamente para confirmar.", () => simularCompra())}
               disabled={loadingSim}
-  style={estiloTalkBack(
-  "simular",
-  {
-    padding: fs('20px 40px', '12px 28px'),
-    fontSize: fs('22px', '16px'),
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '10px',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-    opacity: loadingSim ? 0.7 : 1
-  }
-)}          >
+              style={estiloTalkBack("simular", {})}
+              className={`dm-btn-sim ${isModoIdoso ? 'idoso' : ''}`}
+            >
               {loadingSim ? '⏳ Calculando...' : '📊 Simular compra'}
             </button>
           </div>
 
-          {/* Resultado da simulação */}
-     {resultadoSimulacao && (
-  <div style={{ marginTop: '24px', backgroundColor: '#0f2e1a', border: '1px solid #28a745', borderRadius: '14px', padding: '24px' }}>
-    <p style={{ fontSize: fs('26px', '18px'), color: '#4caf50', fontWeight: 'bold', margin: '0 0 8px' }}>
-      Com R$ {Number(resultadoSimulacao.valorInvestido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} você teria:
-    </p>
-    <p style={{ fontSize: fs('40px', '28px'), color: '#fff', fontWeight: '900', margin: 0 }}>
-      {Number(resultadoSimulacao.quantidadeObtida).toFixed(6)} {id?.toUpperCase()}
-    </p>
-    <p style={{ fontSize: fs('20px', '14px'), color: '#aaa', marginTop: '8px' }}>
-      Preço usado: R$ {Number(resultadoSimulacao.valorAtual).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-    </p>
-  </div>
-)}
+          {resultadoSimulacao && (
+            <div className={`dm-sim-result ${isModoIdoso ? 'idoso' : ''}`}>
+              <p className={`dm-sim-result-label ${isModoIdoso ? 'idoso' : ''}`}>
+                Com R$ {Number(resultadoSimulacao.valorInvestido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} você teria:
+              </p>
+              <p className={`dm-sim-result-qty ${isModoIdoso ? 'idoso' : ''}`}>
+                {Number(resultadoSimulacao.quantidadeObtida).toFixed(6)} {id?.toUpperCase()}
+              </p>
+              <p className={`dm-sim-result-sub ${isModoIdoso ? 'idoso' : ''}`}>
+                Preço usado: R$ {Number(resultadoSimulacao.valorAtual).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          )}
         </div>
       ) : (
-        /* Preview do simulador para não-favoritos */
-        <div style={{ marginTop: '40px', backgroundColor: '#1a1a1a', padding: '28px', borderRadius: '20px', border: '1px dashed #444', textAlign: 'center' }}>
-          <p style={{ color: '#aaa', fontSize: fs('22px', '16px'), margin: 0 }}>
+        <div className={`dm-sim-preview ${isModoIdoso ? 'idoso' : ''}`}>
+          <p className={`dm-sim-preview-text ${isModoIdoso ? 'idoso' : ''}`}>
             ⭐ Adicione esta moeda aos favoritos para usar o simulador de compra
           </p>
         </div>
       )}
 
-<button
-  onClick={toggleModoLeituraHandler}
-  aria-pressed={modoLeitura}
-  aria-label={
-    modoLeitura
-      ? 'Desativar modo leitura TalkBack'
-      : 'Ativar modo leitura TalkBack'
-  }
-  title={
-    modoLeitura
-      ? 'Desativar modo leitura'
-      : 'Ativar modo leitura'
-  }
-  style={{
-    position: 'fixed',
-    bottom: isModoIdoso ? '32px' : '24px',
-    right: isModoIdoso ? '32px' : '24px',
-    width: isModoIdoso ? '80px' : '62px',
-    height: isModoIdoso ? '80px' : '62px',
-    borderRadius: '50%',
-    backgroundColor: modoLeitura ? '#4caf50' : '#1e3a5f',
-    color: 'white',
-    border: `2px solid ${
-      modoLeitura ? '#4caf50' : '#3b82f6'
-    }`,
-    cursor: 'pointer',
-    fontSize: isModoIdoso ? '30px' : '22px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: modoLeitura
-      ? '0 0 0 6px rgba(76,175,80,0.25), 0 4px 20px rgba(0,0,0,0.5)'
-      : '0 4px 20px rgba(0,0,0,0.4)',
-    transition: 'all 0.2s',
-    zIndex: 1000,
-    animation: modoLeitura
-      ? 'fab-pulse 1.6s ease-in-out infinite'
-      : 'none',
-  }}
->
-  🔊
-</button>
+      {/* FAB modo leitura */}
+      <button
+        onClick={toggleModoLeituraHandler}
+        aria-pressed={modoLeitura}
+        aria-label={modoLeitura ? 'Desativar modo leitura TalkBack' : 'Ativar modo leitura TalkBack'}
+        className={`dm-fab ${modoLeitura ? 'ativo' : ''} ${isModoIdoso ? 'idoso' : ''}`}
+      >
+        🔊
+      </button>
 
-{modoLeitura && (
-  <div
-    style={{
-      position: 'fixed',
-      bottom: isModoIdoso ? '122px' : '96px',
-      right: isModoIdoso ? '16px' : '12px',
-      backgroundColor: '#1e1e1e',
-      border: '1px solid #4caf50',
-      borderRadius: '10px',
-      padding: '8px 12px',
-      fontSize: '12px',
-      color: '#4caf50',
-      zIndex: 999,
-      maxWidth: '180px',
-      textAlign: 'center',
-      lineHeight: '1.5',
-      pointerEvents: 'none',
-    }}
-  >
-    1º toque = ouvir
-    <br />
-    2º toque = confirmar
-  </div>
-)}
+      {modoLeitura && (
+        <div className={`dm-fab-legend ${isModoIdoso ? 'idoso' : ''}`}>
+          1º toque = ouvir<br />2º toque = confirmar
+        </div>
+      )}
 
+      <style>{`
+        .dm-root {
+          padding: clamp(12px, 4vw, 20px);
+          color: white;
+          background-color: #121212;
+          min-height: 100vh;
+          box-sizing: border-box;
+          font-family: Arial, sans-serif;
+        }
+
+        /* Voltar */
+        .dm-btn-voltar {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: clamp(8px, 2.5vw, 10px) clamp(14px, 4vw, 20px);
+          margin-bottom: clamp(16px, 4vw, 30px);
+          font-size: clamp(14px, 3.5vw, 16px);
+          cursor: pointer;
+          background-color: #333;
+          color: white;
+          border: 1px solid #555;
+          border-radius: 8px;
+        }
+        .dm-btn-voltar.idoso { font-size: clamp(18px, 4vw, 24px); padding: 16px 32px; }
+
+        /* Header */
+        .dm-header {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: clamp(16px, 4vw, 20px);
+          flex-wrap: wrap;
+        }
+
+        .dm-title { font-size: clamp(26px, 6vw, 32px); margin: 0; }
+        .dm-title.idoso { font-size: clamp(36px, 8vw, 50px); }
+
+        .dm-btn-fav {
+          padding: clamp(10px, 3vw, 12px) clamp(18px, 5vw, 24px);
+          font-size: clamp(14px, 3.5vw, 16px);
+          font-weight: bold;
+          border-radius: 12px;
+          border: none;
+          cursor: pointer;
+          background-color: #f59e0b;
+          color: white;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+        .dm-btn-fav.ativo { background-color: #ff4444; }
+        .dm-btn-fav.idoso { font-size: clamp(18px, 4vw, 22px); padding: 18px 32px; }
+        .dm-btn-fav:disabled { cursor: not-allowed; opacity: 0.7; }
+
+        /* Section */
+        .dm-section { margin-bottom: clamp(24px, 5vw, 40px); }
+        .dm-section-title { font-size: clamp(18px, 4.5vw, 22px); margin-bottom: 10px; }
+        .dm-section-title.idoso { font-size: clamp(24px, 5vw, 30px); }
+
+        /* Edu card */
+        .dm-edu-card {
+          background-color: #1e1e1e;
+          padding: clamp(20px, 5vw, 25px);
+          border-radius: 20px;
+          border: 1px solid #444;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .dm-edu-card.idoso {
+          padding: clamp(28px, 6vw, 40px);
+          border: 5px solid #FFD700;
+        }
+
+        .dm-edu-title { color: #FFD700; font-size: clamp(20px, 5vw, 26px); margin-bottom: 12px; }
+        .dm-edu-title.idoso { font-size: clamp(28px, 6vw, 40px); }
+
+        .dm-edu-desc { font-size: clamp(15px, 3.5vw, 18px); line-height: 1.6; color: #ccc; margin: 0; }
+        .dm-edu-desc.idoso { font-size: clamp(20px, 4.5vw, 28px); }
+
+        .dm-edu-dica {
+          margin-top: 20px;
+          padding: 16px;
+          background-color: #2a2a2a;
+          border-radius: 15px;
+          border-left: 8px solid #FFD700;
+        }
+        .dm-edu-dica-text { font-size: clamp(18px, 4vw, 26px); color: #FFD700; margin: 0; }
+
+        /* Simulator */
+        .dm-simulator {
+          margin-top: clamp(24px, 5vw, 40px);
+          background-color: #1e1e1e;
+          padding: clamp(20px, 5vw, 28px);
+          border-radius: 20px;
+          border: 1px solid #2a2a2a;
+          text-align: center;
+        }
+        .dm-simulator.idoso { padding: clamp(28px, 6vw, 40px); }
+
+        .dm-sim-title { font-size: clamp(18px, 4.5vw, 22px); margin-bottom: 6px; }
+        .dm-sim-title.idoso { font-size: clamp(24px, 5vw, 30px); }
+
+        .dm-sim-price { color: #aaa; font-size: clamp(13px, 3vw, 14px); margin-bottom: 18px; }
+        .dm-sim-price.idoso { font-size: clamp(17px, 3.5vw, 22px); }
+
+        .dm-sim-input {
+          padding: clamp(12px, 3.5vw, 15px);
+          font-size: clamp(16px, 4vw, 20px);
+          border-radius: 10px;
+          width: 100%;
+          max-width: 400px;
+          background-color: #121212;
+          color: white;
+          border: 1px solid #444;
+          box-sizing: border-box;
+        }
+        .dm-sim-input.idoso { font-size: clamp(18px, 4vw, 22px); }
+
+        .dm-btn-sim {
+          padding: clamp(10px, 3vw, 12px) clamp(20px, 5vw, 28px);
+          font-size: clamp(14px, 3.5vw, 16px);
+          background-color: #007bff;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          font-weight: bold;
+        }
+        .dm-btn-sim.idoso { font-size: clamp(18px, 4vw, 22px); padding: 18px 36px; }
+        .dm-btn-sim:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        .dm-sim-result {
+          margin-top: 20px;
+          background-color: #0f2e1a;
+          border: 1px solid #28a745;
+          border-radius: 14px;
+          padding: clamp(16px, 4vw, 24px);
+        }
+
+        .dm-sim-result-label { font-size: clamp(15px, 3.5vw, 18px); color: #4caf50; font-weight: bold; margin: 0 0 6px; }
+        .dm-sim-result-label.idoso { font-size: clamp(18px, 4vw, 26px); }
+
+        .dm-sim-result-qty { font-size: clamp(22px, 5.5vw, 28px); color: white; font-weight: 900; margin: 0; }
+        .dm-sim-result-qty.idoso { font-size: clamp(28px, 7vw, 40px); }
+
+        .dm-sim-result-sub { font-size: clamp(12px, 3vw, 14px); color: #aaa; margin-top: 6px; }
+        .dm-sim-result-sub.idoso { font-size: clamp(15px, 3.5vw, 20px); }
+
+        .dm-sim-preview {
+          margin-top: clamp(24px, 5vw, 40px);
+          background-color: #1a1a1a;
+          padding: clamp(20px, 5vw, 28px);
+          border-radius: 20px;
+          border: 1px dashed #444;
+          text-align: center;
+        }
+        .dm-sim-preview-text { color: #aaa; font-size: clamp(14px, 3.5vw, 16px); margin: 0; }
+        .dm-sim-preview-text.idoso { font-size: clamp(18px, 4vw, 22px); }
+
+        /* FAB */
+        .dm-fab {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          width: 62px;
+          height: 62px;
+          border-radius: 50%;
+          background-color: #1e3a5f;
+          color: white;
+          border: 2px solid #3b82f6;
+          cursor: pointer;
+          font-size: 22px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+          transition: all 0.2s;
+          z-index: 1000;
+        }
+        .dm-fab.ativo {
+          background-color: #4caf50;
+          border-color: #4caf50;
+          box-shadow: 0 0 0 6px rgba(76,175,80,0.25), 0 4px 20px rgba(0,0,0,0.5);
+          animation: dm-fab-pulse 1.6s ease-in-out infinite;
+        }
+        .dm-fab.idoso { width: 80px; height: 80px; font-size: 30px; bottom: 32px; right: 32px; }
+        .dm-fab:hover { transform: scale(1.1); }
+
+        .dm-fab-legend {
+          position: fixed;
+          bottom: 96px;
+          right: 12px;
+          background-color: #1e1e1e;
+          border: 1px solid #4caf50;
+          border-radius: 10px;
+          padding: 8px 12px;
+          font-size: 12px;
+          color: #4caf50;
+          z-index: 999;
+          max-width: 180px;
+          text-align: center;
+          line-height: 1.5;
+          pointer-events: none;
+        }
+        .dm-fab-legend.idoso { bottom: 122px; right: 16px; }
+
+        @keyframes dm-fab-pulse {
+          0%, 100% { box-shadow: 0 0 0 6px rgba(76,175,80,0.25), 0 4px 20px rgba(0,0,0,0.5); }
+          50%       { box-shadow: 0 0 0 14px rgba(76,175,80,0.06), 0 4px 20px rgba(0,0,0,0.5); }
+        }
+
+        *:focus-visible { outline: 3px solid #007bff; outline-offset: 3px; }
+
+        @media (max-width: 480px) {
+          .dm-header { flex-direction: column; align-items: flex-start; }
+          .dm-btn-fav { width: 100%; text-align: center; }
+          .dm-sim-input { max-width: 100%; }
+        }
+      `}</style>
     </div>
   );
-  
 }
