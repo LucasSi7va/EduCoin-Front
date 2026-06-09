@@ -24,6 +24,9 @@ function ListaMoedas() {
   // Estados para controle de interface responsiva
   const [menuAberto, setMenuAberto] = useState(false);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  
+  // Estado para controlar a visibilidade do botão "Voltar ao Topo"
+  const [mostrarVoltarTopo, setMostrarVoltarTopo] = useState(false);
 
   const [usuario, setUsuario] = useState(() =>
     JSON.parse(localStorage.getItem('usuario') || 'null')
@@ -32,12 +35,52 @@ function ListaMoedas() {
   const fala = useFala();
   const { talkClick, estiloTalkBack } = useTalkBack(modoLeitura, fala);
 
+  // Inicialização única do Script do Google Tradutor evitando ID duplicado
+  useEffect(() => {
+    (window as any).googleTranslateElementInit = () => {
+      new (window as any).google.translate.TranslateElement(
+        {
+          pageLanguage: 'pt',
+          includedLanguages: 'en,es,pt',
+          layout: (window as any).google.translate.TranslateElement.InlineLayout.SIMPLE,
+          autoDisplay: false,
+        },
+        'google_translate_element'
+      );
+    };
+
+    const idScript = 'google-translate-script';
+    if (!document.getElementById(idScript)) {
+      const addScript = document.createElement('script');
+      addScript.id = idScript;
+      addScript.setAttribute(
+        'src',
+        '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit'
+      );
+      document.body.appendChild(addScript);
+    }
+  }, []);
+
   useEffect(() => {
     function syncUsuario() {
       setUsuario(JSON.parse(localStorage.getItem('usuario') || 'null'));
     }
     window.addEventListener('storage', syncUsuario);
     return () => window.removeEventListener('storage', syncUsuario);
+  }, []);
+
+  // Monitora a rolagem da página para exibir/esconder o botão
+  useEffect(() => {
+    function verificarRolagem() {
+      if (window.scrollY > 300) {
+        setMostrarVoltarTopo(true);
+      } else {
+        setMostrarVoltarTopo(false);
+      }
+    }
+
+    window.addEventListener("scroll", verificarRolagem);
+    return () => window.removeEventListener("scroll", verificarRolagem);
   }, []);
 
   const moedasExibidas = apenasFantavoritos
@@ -95,6 +138,21 @@ function ListaMoedas() {
     } else {
       fala.parar();
       setAnuncio('Modo leitura desativado.');
+    }
+  }
+
+  function rolarParaOTopo() {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  }
+
+  // Função espelho para simular o clique no seletor do Google a partir do menu mobile
+  function simularCliqueTradutorMobile() {
+    const elementoGoogle = document.querySelector('.goog-te-gadget-simple') as HTMLElement;
+    if (elementoGoogle) {
+      elementoGoogle.click();
     }
   }
 
@@ -164,7 +222,6 @@ function ListaMoedas() {
             <h3>Navegação</h3>
           </div>
           
-          {/* Seção do Usuário no Mobile agora é Clicável e Funcional */}
           {usuario && (
             <button
               className="lm-menu-user-info-btn"
@@ -183,6 +240,15 @@ function ListaMoedas() {
               <span className="lm-menu-user-name-text">{usuario.nome} (Ver Perfil)</span>
             </button>
           )}
+
+          {/* Botão Mobile customizado que simula o acionamento do tradutor principal */}
+          <button 
+            onClick={talkClick('mb-tradutor', 'Alterar idioma da página. Toque novamente para abrir as opções de tradução.', () => { simularCliqueTradutorMobile(); setMenuAberto(false); })}
+            style={estiloTalkBack('mb-tradutor', {})}
+            className="lm-mb-translate-btn"
+          >
+            🌐 Alterar Idioma / Language
+          </button>
 
           <button 
             onClick={talkClick('mb-tutorial', 'Tutorial. Toque novamente para abrir.', () => { navigate('/tutorial'); setMenuAberto(false); })}
@@ -240,6 +306,9 @@ function ListaMoedas() {
 
         {/* Desktop Header Actions */}
         <div className="lm-header-actions">
+          {/* Instancia única e oficial do ID que a API injeta o HTML */}
+          <div id="google_translate_element" className="lm-google-translate" />
+
           {usuario ? (
             <div className="lm-user-container">
               <Link to="/PerfilUsuario" className="lm-user-link">
@@ -437,8 +506,46 @@ function ListaMoedas() {
         </div>
       )}
 
+      {/* FAB: Voltar ao Topo */}
+      <button
+        onClick={talkClick('btn-voltar-topo', 'Voltar para o topo da página. Toque novamente para subir.', rolarParaOTopo)}
+        style={estiloTalkBack('btn-voltar-topo', {})}
+        className={`lm-fab-top ${mostrarVoltarTopo ? 'visivel' : ''} ${isModoIdoso ? 'idoso' : ''}`}
+        aria-label="Voltar para o topo da página"
+        title="Voltar ao topo"
+      >
+        ▲
+      </button>
+
       <style>{`
-        /* ── Design System Clássico (Fundo Escuro Original) ── */
+        /* ── CORREÇÃO DE PRECEDÊNCIA DO GOOGLE TRADUTOR ── */
+        html, body {
+          top: 0px !important;
+          position: static !important;
+          margin-top: 0px !important;
+          padding-top: 0px !important;
+        }
+
+        /* Força a remoção de elementos de topo injetados por iframe */
+        iframe[id*="translate"], 
+        .goog-te-banner-frame, 
+        .goog-te-banner,
+        #goog-gt-tt,
+        .goog-te-balloon-frame {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          height: 0px !important;
+          width: 0px !important;
+        }
+
+        .goog-text-highlight {
+          background-color: transparent !important;
+          box-shadow: none !important;
+          box-sizing: border-box;
+        }
+
+        /* Design System Clássico (Fundo Escuro Original) */
         .lm-root {
           padding: clamp(16px, 4vw, 32px);
           font-family: Arial, sans-serif;
@@ -457,7 +564,7 @@ function ListaMoedas() {
           border: 0;
         }
 
-        /* ── Header Original ── */
+        /* Header Original */
         .lm-header {
           display: flex;
           justify-content: space-between;
@@ -535,7 +642,7 @@ function ListaMoedas() {
         .lm-btn-modo.ativo.idoso,
         .lm-btn-modo.idoso { font-size: clamp(18px, 4vw, 24px); padding: 18px 36px; }
 
-        /* ── Filtros e Busca Clássicos ── */
+        /* Filtros e Busca Clássicos */
         .lm-search-wrap {
           display: flex; gap: 12px; margin-bottom: 24px;
         }
@@ -587,7 +694,7 @@ function ListaMoedas() {
         .lm-status { color: #aaa; text-align: center; font-size: clamp(16px, 3.5vw, 18px); }
         .lm-status.idoso { font-size: clamp(20px, 4vw, 24px); }
 
-        /* ── Grid Modificada (Cards Maiores) ── */
+        /* Grid */
         .lm-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
@@ -595,7 +702,7 @@ function ListaMoedas() {
         }
         .lm-grid.idoso { gap: 32px; }
 
-        /* ── Card Encorpado ── */
+        /* Card Encorpado */
         .lm-card {
           background-color: #1e1e1e; border: 1px solid #333; border-radius: 18px;
           padding: clamp(32px, 4vw, 40px); display: flex; flex-direction: column; align-items: center; gap: 20px;
@@ -616,7 +723,6 @@ function ListaMoedas() {
         .lm-coin-price { font-size: clamp(22px, 4.5vw, 28px); color: #4caf50; font-weight: 900; width: 100%; text-align: left; }
         .lm-coin-price.idoso { font-size: clamp(26px, 5vw, 36px); background-color: #000; padding: 10px 16px; border-radius: 8px; text-align: center; }
 
-        /* ── Botões dos Cards Ampliados ── */
         .lm-card-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; margin-top: 8px; }
         
         .lm-btn-fav, .lm-btn-detail { 
@@ -645,6 +751,7 @@ function ListaMoedas() {
         /* Escondidos por padrão no Desktop */
         .lm-menu-btn, .lm-mobile-menu, .lm-menu-backdrop { display: none; }
 
+        /* FABs */
         .lm-fab {
           position: fixed; bottom: 24px; right: 24px; width: 64px; height: 64px;
           border-radius: 50%; background-color: #1e3a5f; color: white; border: 2px solid #3b82f6;
@@ -653,6 +760,59 @@ function ListaMoedas() {
         }
         .lm-fab.ativo { background-color: #4caf50; border-color: #4caf50; }
         .lm-fab.idoso { width: 84px; height: 84px; font-size: 34px; }
+
+        .lm-fab-legend {
+          position: fixed; bottom: 96px; right: 12px; background-color: #1e1e1e; border: 1px solid #4caf50;
+          border-radius: 10px; padding: 8px 12px; font-size: 12px; color: #4caf50; z-index: 999; text-align: center;
+        }
+        .lm-fab-legend.idoso { bottom: 122px; right: 16px; }
+
+        .lm-fab-top {
+          position: fixed; bottom: 24px; left: 24px; width: 58px; height: 58px;
+          border-radius: 50%; background-color: #222; color: #f59e0b; border: 2px solid #444;
+          cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 1000;
+          opacity: 0; transform: translateY(20px); pointer-events: none;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .lm-fab-top.visivel { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .lm-fab-top:hover { background-color: #333; border-color: #f59e0b; }
+        .lm-fab-top.idoso { width: 78px; height: 78px; font-size: 28px; background-color: #000; border: 4px solid #FFD700; color: #FFD700; }
+
+        /* Estilização Persistente do Container do Google Tradutor */
+        #google_translate_element {
+          display: inline-block !important;
+          margin-right: 12px;
+          visibility: visible !important;
+        }
+
+        .goog-te-gadget-simple {
+          background-color: #1e1e1e !important;
+          border: 1px solid #444 !important;
+          padding: 8px 12px !important;
+          border-radius: 10px !important;
+          font-family: Arial, sans-serif !important;
+          cursor: pointer;
+          transition: border-color 0.2s;
+          display: flex !important;
+          align-items: center;
+        }
+
+        .goog-te-gadget-simple:hover {
+          border-color: #f59e0b !important;
+        }
+
+        .goog-te-gadget-simple span {
+          color: white !important;
+          font-weight: bold;
+          font-size: 14px;
+        }
+
+        .goog-te-gadget-icon,
+        .goog-te-menu-value img,
+        .goog-te-menu-value span:last-child {
+          display: none !important;
+        }
 
         /* ── Media Query Mobile ── */
         @media (max-width: 900px) {
@@ -681,26 +841,19 @@ function ListaMoedas() {
           .lm-mobile-menu.aberto { transform: translateX(0); }
           .lm-mobile-menu-header { font-size: 18px; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 12px; color: #aaa; }
           
-          /* Estilização para o novo botão de perfil do menu hambúrguer */
           .lm-menu-user-info-btn {
-            width: 100%;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid #333 !important;
-            border-radius: 12px;
-            color: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            box-sizing: border-box;
-            text-align: left !important;
-            transition: background 0.2s;
+            width: 100%; padding: 12px; background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333 !important; border-radius: 12px; color: white; cursor: pointer;
+            display: flex; align-items: center; gap: 12px; box-sizing: border-box; text-align: left !important;
           }
-          .lm-menu-user-info-btn:active { background: rgba(255, 255, 255, 0.1); }
           .lm-menu-user-name-text { font-weight: bold; font-size: 15px; color: #60a5fa; }
 
-          /* Ajustados botões mobile para herdar estilos do TalkBack corretamente */
+          .lm-mb-translate-btn {
+            background: rgba(245, 158, 11, 0.1) !important;
+            color: #f59e0b !important;
+            border: 1px solid rgba(245, 158, 11, 0.3) !important;
+          }
+
           .lm-mobile-menu button {
             width: 100%; height: 54px; font-size: 16px; font-weight: bold; border-radius: 10px;
             border: 1px solid #444; background: #333; color: white; text-align: left; padding-left: 16px; cursor: pointer;
@@ -722,11 +875,8 @@ function ListaMoedas() {
           .lm-grid { grid-template-columns: 1fr; gap: 20px; }
           .lm-root { padding: 16px; }
           .lm-card { padding: 32px; gap: 18px; }
-          
-          .lm-btn-fav, .lm-btn-detail { 
-            height: 64px; 
-            font-size: 17px; 
-          }
+          .lm-btn-fav, .lm-btn-detail { height: 64px; font-size: 17px; }
+          .lm-fab-top { bottom: 16px; left: 16px; }
         }
       `}</style>
     </div>
