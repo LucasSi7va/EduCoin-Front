@@ -241,7 +241,6 @@ export function Tutorial() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#121212', color: 'white', fontFamily: 'Arial, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
 
-      {/* Região live para leitores de tela */}
       <div role="status" aria-live="polite" aria-atomic="true"
         style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>
         {anuncio}
@@ -249,7 +248,7 @@ export function Tutorial() {
 
       <div style={{ width: '100%', maxWidth: '560px' }}>
 
-        {/* ── Header ── */}
+
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <h1 style={{ fontSize: '22px', margin: 0 }}>Tutorial CoinEdu</h1>

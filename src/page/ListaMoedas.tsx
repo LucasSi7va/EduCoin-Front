@@ -165,13 +165,13 @@ function ListaMoedas() {
     setFavoritando(moedaId);
     try {
       if (jaFavorita) {
-        await api.delete(`/usuario/carteira/remover?usuarioId=${usuarioAtual.id}&moeda=${moedaId}`);
+        await api.delete(`/carteira/remover?usuarioId=${usuarioAtual.id}&moeda=${moedaId}`);
         const novaLista = favoritosLocais.filter((m: string) => m !== moedaId);
         const atualizado = { ...usuarioAtual, moedasFavoritas: novaLista };
         localStorage.setItem('usuario', JSON.stringify(atualizado));
         setUsuario(atualizado);
       } else {
-        await api.post(`/usuario/carteira/favoritar?usuarioId=${usuarioAtual.id}&moeda=${moedaId}`);
+        await api.post(`/carteira/favoritar?usuarioId=${usuarioAtual.id}&moeda=${moedaId}`);
         const novaLista = [...favoritosLocais, moedaId];
         const atualizado = { ...usuarioAtual, moedasFavoritas: novaLista };
         localStorage.setItem('usuario', JSON.stringify(atualizado));

@@ -21,9 +21,14 @@ export function DetalhesMoeda() {
   const { talkClick, estiloTalkBack } = useTalkBack(modoLeitura, fala);
   const navigate = useNavigate();
 
-  const usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
+ const [usuario] = useState(() => JSON.parse(localStorage.getItem('usuario') || 'null'));
   const favoritosLocais: string[] = usuario?.moedasFavoritas || [];
   const [isFavorita, setIsFavorita] = useState(favoritosLocais.includes(id || ''));
+
+
+const [querSalvar, setQuerSalvar] = useState<boolean | null>(null);
+const [historicoSimulacoes, setHistoricoSimulacoes] = useState<any[]>([]);
+const [loadingHistorico, setLoadingHistorico] = useState(false);
 
   const conteudosEducativos = [
     { id: "bitcoin", titulo: "O que é Bitcoin?", descricao: "É um tipo de dinheiro totalmente digital, que não depende de bancos ou governos.", dicaIdoso: "Pense no Bitcoin como um 'ouro digital' que você guarda no seu celular." },
@@ -43,27 +48,34 @@ export function DetalhesMoeda() {
   }
 
   useEffect(() => {
-    api.get(`/coin/${id}/historico/lista?dias=7`)
-      .then(res => {
-        const lista: any[] = res.data;
-        setPrecoAtual(lista[0]?.preco_brl ?? 1);
-        setHistorico([...lista].reverse());
-      })
-      .catch(err => console.error("Erro ao carregar histórico", err));
-  }, [id]);
+  if (!usuario || !isFavorita) return;
+
+  api.get(`/carteira/historico/${usuario.id}/${id}`)
+    .then(res => setHistoricoSimulacoes(res.data))
+    .catch(() => {});
+
+  api.get(`/coin/${id}/historico/lista?dias=7`)
+    .then(res => {
+      const lista: any[] = res.data;
+      setPrecoAtual(lista[0]?.preco_brl ?? 1);
+      setHistorico([...lista].reverse());
+    })
+    .catch(err => console.error("Erro ao carregar histórico", err));
+
+}, [isFavorita, id]);
 
   async function toggleFavorito() {
     if (!usuario) { alert('Faça login para favoritar!'); return; }
     setLoadingFav(true);
     try {
       if (isFavorita) {
-        await api.delete(`/usuario/carteira/remover?usuarioId=${usuario.id}&moeda=${id}`);
+        await api.delete(`/carteira/remover?usuarioId=${usuario.id}&moeda=${id}`);
         const novaLista = favoritosLocais.filter(m => m !== id);
         localStorage.setItem('usuario', JSON.stringify({ ...usuario, moedasFavoritas: novaLista }));
         setIsFavorita(false);
         setResultadoSimulacao(null);
       } else {
-        await api.post(`/usuario/carteira/favoritar?usuarioId=${usuario.id}&moeda=${id}`);
+        await api.post(`/carteira/favoritar?usuarioId=${usuario.id}&moeda=${id}`);
         const novaLista = [...favoritosLocais, id!];
         localStorage.setItem('usuario', JSON.stringify({ ...usuario, moedasFavoritas: novaLista }));
         setIsFavorita(true);
@@ -79,8 +91,9 @@ export function DetalhesMoeda() {
     if (!usuario) { alert('Faça login para simular!'); return; }
     if (valorSimulacao <= 0) { alert('Digite um valor para simular.'); return; }
     setLoadingSim(true);
+    setQuerSalvar(null);
     try {
-      const res = await api.get(`/usuario/carteira/simulacao`, {
+      const res = await api.get(`/carteira/simulacao`, {
         params: { moeda: id, valorCompra: valorSimulacao, usuarioId: usuario.id, precoAtual }
       });
       setResultadoSimulacao(res.data);
@@ -90,6 +103,41 @@ export function DetalhesMoeda() {
       setLoadingSim(false);
     }
   }
+
+
+async function salvarSimulacao() {
+  setLoadingHistorico(true);
+  try {
+    await api.post(`/carteira/historico`, {
+      usuarioId: usuario.id,
+      moeda: id,
+      valorCompra: valorSimulacao,
+      precoAtual
+    });
+
+    // atualiza a lista local sem precisar buscar de novo
+    const nova = {
+  nomeMoeda: id,
+  valorDigitado: valorSimulacao,        // ← era valorInvestido
+  QuantidadeObtida: resultadoSimulacao.quantidadeObtida, // ← Q maiúsculo
+  valorAtual: precoAtual,
+  dataSimulacao: new Date().toISOString()
+};
+    setHistoricoSimulacoes(prev => [nova, ...prev]);
+    setQuerSalvar(false);
+  } catch (e: any) {
+    const msg = e?.response?.data?.message || '';
+    if (msg.toLowerCase().includes('limite')) {
+      alert('Você atingiu o limite de 3 simulações salvas. Aguarde a limpeza automática.');
+    } else {
+      alert('Erro ao salvar simulação.');
+    }
+  } finally {
+    setLoadingHistorico(false);
+  }
+}
+
+
 
   return (
     <div className="dm-root">
@@ -169,18 +217,74 @@ export function DetalhesMoeda() {
           </div>
 
           {resultadoSimulacao && (
-            <div className={`dm-sim-result ${isModoIdoso ? 'idoso' : ''}`}>
-              <p className={`dm-sim-result-label ${isModoIdoso ? 'idoso' : ''}`}>
-                Com R$ {Number(resultadoSimulacao.valorInvestido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} você teria:
-              </p>
-              <p className={`dm-sim-result-qty ${isModoIdoso ? 'idoso' : ''}`}>
-                {Number(resultadoSimulacao.quantidadeObtida).toFixed(6)} {id?.toUpperCase()}
-              </p>
-              <p className={`dm-sim-result-sub ${isModoIdoso ? 'idoso' : ''}`}>
-                Preço usado: R$ {Number(resultadoSimulacao.valorAtual).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-          )}
+  <div className={`dm-sim-result ${isModoIdoso ? 'idoso' : ''}`}>
+    <p className={`dm-sim-result-label ${isModoIdoso ? 'idoso' : ''}`}>
+      Com R$ {Number(resultadoSimulacao.valorInvestido).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} você teria:
+    </p>
+    <p className={`dm-sim-result-qty ${isModoIdoso ? 'idoso' : ''}`}>
+      {Number(resultadoSimulacao.quantidadeObtida).toFixed(6)} {id?.toUpperCase()}
+    </p>
+    <p className={`dm-sim-result-sub ${isModoIdoso ? 'idoso' : ''}`}>
+      Preço usado: R$ {Number(resultadoSimulacao.valorAtual).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+    </p>
+
+    {/* Pergunta se quer salvar */}
+    {querSalvar === null && (
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '16px' }}>
+        <button
+          onClick={() => { setQuerSalvar(true); salvarSimulacao(); }}
+          disabled={loadingHistorico}
+          className={`dm-btn-sim ${isModoIdoso ? 'idoso' : ''}`}
+          style={{ background: '#28a745', fontSize: isModoIdoso ? undefined : '14px', padding: '10px 20px' }}
+        >
+          💾 Salvar simulação
+        </button>
+        <button
+          onClick={() => setQuerSalvar(false)}
+          className={`dm-btn-sim ${isModoIdoso ? 'idoso' : ''}`}
+          style={{ background: '#444', fontSize: isModoIdoso ? undefined : '14px', padding: '10px 20px' }}
+        >
+          Não salvar
+        </button>
+      </div>
+    )}
+
+    {querSalvar === true && loadingHistorico && (
+      <p style={{ color: '#aaa', marginTop: '12px', fontSize: '14px' }}>⏳ Salvando...</p>
+    )}
+    {querSalvar !== null && !loadingHistorico && (
+      <p style={{ color: '#4caf50', marginTop: '12px', fontSize: '13px' }}>
+        {querSalvar ? '✅ Simulação salva!' : ''}
+      </p>
+    )}
+  </div>
+)}
+
+{/* Histórico de simulações */}
+{historicoSimulacoes.length > 0 && (
+  <div style={{ marginTop: '24px', background: '#1a1a1a', border: '1px solid #333', borderRadius: '14px', padding: '20px' }}>
+    <p style={{ color: '#FFD700', fontWeight: 'bold', margin: '0 0 14px', fontSize: isModoIdoso ? '22px' : '15px' }}>
+      📋 Histórico de simulações
+    </p>
+    <div style={{ display: 'grid', gap: '10px' }}>
+      {historicoSimulacoes.map((h, i) => (
+        <div key={i} style={{ background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: '10px', padding: '14px', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+          
+          <p>{new Date(h.dataSimulacao).toLocaleString('pt-BR')}</p>
+    <p>{h.nomeMoeda?.toUpperCase()}</p>
+
+    <p>Investido: R$ {Number(h.valorDigitado ?? h.valorInvestido)
+      .toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+
+    <p>{Number(h.QuantidadeObtida ?? h.quantidadeObtida).toFixed(6)} {h.nomeMoeda?.toUpperCase()}</p>
+
+    <p>@ R$ {Number(h.valorAtual ?? h.precoAtualDaMoeda)
+      .toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
         </div>
       ) : (
         <div className={`dm-sim-preview ${isModoIdoso ? 'idoso' : ''}`}>
