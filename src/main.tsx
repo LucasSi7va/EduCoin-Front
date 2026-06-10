@@ -5,13 +5,17 @@ import './index.css'
 import { AcessibilidadeProvider } from './contexts/AcessibilidadeContext.tsx'
 import App from './App.tsx'
 import { ModoLeituraProvider } from './contexts/ModoLeituraContext.tsx'
+import { TemaProvider } from './contexts/TemaContext.tsx'
 
 createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
+    
     <BrowserRouter>
      <ModoLeituraProvider>
       <AcessibilidadeProvider>
+       <TemaProvider>
         <App />
+       </TemaProvider>
       </AcessibilidadeProvider>
     </ModoLeituraProvider>
     </BrowserRouter>
