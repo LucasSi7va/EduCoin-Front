@@ -7,7 +7,7 @@ import { PerfilUsuario } from "./page/PerfilUsuario";
 import { Login } from "./page/Login";
 import { Cadastro } from "./page/Cadastro";
 import { Tutorial } from "./page/Tutorial";
-
+import { Configuracoes } from "./page/Configuracoes";
 import { useAlertas } from "./hooks/useAlertas";
 
 function App() {
@@ -22,12 +22,13 @@ function App() {
       <Route path="/cadastro" element={<Cadastro />} />
 
       <Route path="/perfil" element={<Perfil />} />
-
-
       <Route
         path="/PerfilUsuario"
         element={<PerfilUsuario />}
       />
+
+    <Route path="/configuracoes" element={<Configuracoes />} />
+
       <Route path="/tutorial" element={<Tutorial />} />
 
       <Route path="/" element={<ListaMoedas />} />

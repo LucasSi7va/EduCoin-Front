@@ -6,6 +6,8 @@ import api from "../services/api";
 import { useFala, useTalkBack } from "../hooks/UseTalkBack";
 import { useModoLeitura } from "../contexts/ModoLeituraContext";
 
+
+
 export function DetalhesMoeda() {
   const { id } = useParams();
   const { isModoIdoso } = useAcessibilidade();
@@ -16,6 +18,9 @@ export function DetalhesMoeda() {
   const [loadingFav, setLoadingFav] = useState(false);
   const [loadingSim, setLoadingSim] = useState(false);
   const { modoLeitura, setModoLeitura } = useModoLeitura();
+
+const [loadingGrafico, setLoadingGrafico] = useState(true);
+const [erroGrafico, setErroGrafico] = useState(false);
 
   const fala = useFala();
   const { talkClick, estiloTalkBack } = useTalkBack(modoLeitura, fala);
@@ -47,12 +52,11 @@ const [loadingHistorico, setLoadingHistorico] = useState(false);
     }
   }
 
-  useEffect(() => {
-  if (!usuario || !isFavorita) return;
-
-  api.get(`/carteira/historico/${usuario.id}/${id}`)
-    .then(res => setHistoricoSimulacoes(res.data))
-    .catch(() => {});
+  // 1 — carrega o gráfico sempre, independente de login ou favorito
+useEffect(() => {
+  if (!id) return;
+  setLoadingGrafico(true);
+  setErroGrafico(false);
 
   api.get(`/coin/${id}/historico/lista?dias=7`)
     .then(res => {
@@ -60,9 +64,18 @@ const [loadingHistorico, setLoadingHistorico] = useState(false);
       setPrecoAtual(lista[0]?.preco_brl ?? 1);
       setHistorico([...lista].reverse());
     })
-    .catch(err => console.error("Erro ao carregar histórico", err));
+    .catch(() => setErroGrafico(true))
+    .finally(() => setLoadingGrafico(false));
+}, [id]);
 
+// 2 — carrega histórico de simulações só se logado e favorita
+useEffect(() => {
+  if (!usuario || !isFavorita || !id) return;
+  api.get(`/carteira/historico/${usuario.id}/${id}`)
+    .then(res => setHistoricoSimulacoes(res.data))
+    .catch(() => {});
 }, [isFavorita, id]);
+
 
   async function toggleFavorito() {
     if (!usuario) { alert('Faça login para favoritar!'); return; }
@@ -168,9 +181,24 @@ async function salvarSimulacao() {
 
       {/* Gráfico */}
       <div className="dm-section">
-        <h2 className={`dm-section-title ${isModoIdoso ? 'idoso' : ''}`}>Evolução do Valor</h2>
-        {historico.length > 0 ? <GraficoMoeda dados={historico} /> : <p>Carregando gráfico...</p>}
-      </div>
+  <h2 className={`dm-section-title ${isModoIdoso ? 'idoso' : ''}`}>Evolução do Valor</h2>
+
+  {loadingGrafico && (
+    <div style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}>
+      ⏳ Carregando gráfico...
+    </div>
+  )}
+
+  {!loadingGrafico && erroGrafico && (
+    <div style={{ textAlign: 'center', padding: '40px', color: '#f87171' }}>
+      ❌ Não foi possível carregar o gráfico para esta moeda.
+    </div>
+  )}
+
+  {!loadingGrafico && !erroGrafico && historico.length > 0 && (
+    <GraficoMoeda dados={historico} />
+  )}
+</div>
 
       {/* Seção Educativa */}
       <div className={`dm-edu-card ${isModoIdoso ? 'idoso' : ''}`}>

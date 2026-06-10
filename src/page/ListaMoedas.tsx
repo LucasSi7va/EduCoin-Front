@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import type { Moeda } from "../types/Moeda";
 import { useAcessibilidade } from "../contexts/AcessibilidadeContext";
-import { useFala, useTalkBack } from "../hooks/UseTalkBack";
 import api from "../services/api";
 import { Link, useNavigate } from 'react-router-dom';
 import "../animations.css";
-import { useModoLeitura } from "../contexts/ModoLeituraContext";
+  import { useTema } from "../contexts/TemaContext";
+
 
 function ListaMoedas() {
+  const { tema, toggleTema } = useTema();
   const [moedas, setMoedas] = useState<Moeda[]>([]);
   const [busca, setBusca] = useState('');
   const [precoMin, setPrecoMin] = useState('');
@@ -16,11 +17,8 @@ function ListaMoedas() {
   const [carregando, setCarregando] = useState(false);
   const [favoritando, setFavoritando] = useState<string | null>(null);
   const [apenasFantavoritos, setApenasFantavoritos] = useState(false);
-  const { modoLeitura, setModoLeitura } = useModoLeitura();
-  const [anuncio, setAnuncio] = useState('');
   const { isModoIdoso, toggleModoIdoso } = useAcessibilidade();
   const navigate = useNavigate();
-  
   // Estados para controle de interface responsiva
   const [menuAberto, setMenuAberto] = useState(false);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
@@ -31,9 +29,6 @@ function ListaMoedas() {
   const [usuario, setUsuario] = useState(() =>
     JSON.parse(localStorage.getItem('usuario') || 'null')
   );
-
-  const fala = useFala();
-  const { talkClick, estiloTalkBack } = useTalkBack(modoLeitura, fala);
 
   // Inicialização única do Script do Google Tradutor evitando ID duplicado
   useEffect(() => {
@@ -129,18 +124,6 @@ function ListaMoedas() {
     carregarTodas();
   }
 
-  function toggleModoLeituraHandler() {
-    const novo = !modoLeitura;
-    setModoLeitura(novo);
-    if (novo) {
-      setAnuncio('Modo leitura ativado. Toque uma vez para ouvir, duas vezes para confirmar.');
-      fala.falar('Modo leitura ativado. Toque uma vez em qualquer botão para ouvir o que ele faz. Toque duas vezes para confirmar a ação.');
-    } else {
-      fala.parar();
-      setAnuncio('Modo leitura desativado.');
-    }
-  }
-
   function rolarParaOTopo() {
     window.scrollTo({
       top: 0,
@@ -186,26 +169,16 @@ function ListaMoedas() {
   }
 
   return (
-    <div className="lm-root">
-
-      {/* Região live para leitores de tela */}
-      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        {anuncio}
-      </div>
+    <div className={`lm-root ${tema === 'claro' ? 'claro' : ''}`}>
 
       {/* ── Header ── */}
       <header className="lm-header">
         <h1 className={`lm-title ${isModoIdoso ? 'idoso' : ''}`}>CoinEdu</h1>
 
-        {/* Botão Hambúrguer Animado com TalkBack */}
+        {/* Botão Hambúrguer Animado */}
         <button
           className={`lm-menu-btn ${menuAberto ? 'aberto' : ''}`}
-          onClick={talkClick(
-            'menu-hamburguer', 
-            menuAberto ? 'Fechar menu de navegação. Toque novamente para fechar.' : 'Abrir menu de navegação. Toque novamente para abrir.', 
-            () => setMenuAberto(!menuAberto)
-          )}
-          style={estiloTalkBack('menu-hamburguer', {})}
+          onClick={() => setMenuAberto(!menuAberto)}
           aria-label="Menu de navegação"
         >
           <span></span>
@@ -216,7 +189,7 @@ function ListaMoedas() {
         {/* Backdrop escuro clicável para fechar o menu mobile */}
         {menuAberto && <div className="lm-menu-backdrop" onClick={() => setMenuAberto(false)} />}
 
-        {/* Menu Mobile Lateral (Drawer) com TalkBack Integrado */}
+        {/* Menu Mobile Lateral (Drawer) */}
         <div className={`lm-mobile-menu ${menuAberto ? 'aberto' : ''}`}>
           <div className="lm-mobile-menu-header">
             <h3>Navegação</h3>
@@ -225,12 +198,7 @@ function ListaMoedas() {
           {usuario && (
             <button
               className="lm-menu-user-info-btn"
-              onClick={talkClick(
-                'mb-perfil-usuario',
-                `Acessar perfil de ${usuario.nome}. Toque novamente para abrir o seu perfil.`,
-                () => { navigate('/PerfilUsuario'); setMenuAberto(false); }
-              )}
-              style={estiloTalkBack('mb-perfil-usuario', {})}
+              onClick={() => { navigate('/PerfilUsuario'); setMenuAberto(false); }}
             >
               <img
                 src={usuario.fotoPerfil || `https://ui-avatars.com/api/?name=${usuario.nome}&background=333&color=fff`}
@@ -243,31 +211,19 @@ function ListaMoedas() {
 
           {/* Botão Mobile customizado que simula o acionamento do tradutor principal */}
           <button 
-            onClick={talkClick('mb-tradutor', 'Alterar idioma da página. Toque novamente para abrir as opções de tradução.', () => { simularCliqueTradutorMobile(); setMenuAberto(false); })}
-            style={estiloTalkBack('mb-tradutor', {})}
+            onClick={() => { simularCliqueTradutorMobile(); setMenuAberto(false); }}
             className="lm-mb-translate-btn"
           >
             🌐 Alterar Idioma / Language
           </button>
 
-          <button 
-            onClick={talkClick('mb-tutorial', 'Tutorial. Toque novamente para abrir.', () => { navigate('/tutorial'); setMenuAberto(false); })}
-            style={estiloTalkBack('mb-tutorial', {})}
-          >
+          <button onClick={() => { navigate('/tutorial'); setMenuAberto(false); }}>
             📖 Tutorial
           </button>
           
           <button 
-            onClick={talkClick('mb-modo-leitura', 'Modo Leitura. Toque novamente para abrir.', () => { navigate('/modo-leitura'); setMenuAberto(false); })}
-            style={estiloTalkBack('mb-modo-leitura', {})}
-          >
-            🔊 Modo Leitura
-          </button>
-          
-          <button 
             className="lm-btn-toggle-menu" 
-            onClick={talkClick('mb-modo-idoso', isModoIdoso ? 'Voltar ao Modo Padrão.' : 'Ativar Modo Acessível.', () => { toggleModoIdoso(); setMenuAberto(false); })}
-            style={estiloTalkBack('mb-modo-idoso', {})}
+            onClick={() => { toggleModoIdoso(); setMenuAberto(false); }}
           >
             {isModoIdoso ? '✨ Modo Padrão' : '👴 Modo Acessível'}
           </button>
@@ -277,26 +233,21 @@ function ListaMoedas() {
           {usuario ? (
             <button 
               className="lm-menu-btn-sair" 
-              onClick={talkClick('mb-sair', 'Sair da conta. Toque novamente para confirmar.', () => {
+              onClick={() => {
                 localStorage.removeItem('usuario');
                 window.location.reload();
-              })}
-              style={estiloTalkBack('mb-sair', {})}
+              }}
             >
               Sair da Conta
             </button>
           ) : (
             <>
-              <button 
-                onClick={talkClick('mb-entrar', 'Entrar na sua conta. Toque novamente para fazer login.', () => { navigate('/login'); setMenuAberto(false); })}
-                style={estiloTalkBack('mb-entrar', {})}
-              >
+              <button onClick={() => { navigate('/login'); setMenuAberto(false); }}>
                 Entrar
               </button>
               <button 
                 className="lm-menu-btn-primary" 
-                onClick={talkClick('mb-cadastro', 'Criar Conta. Toque novamente para cadastrar.', () => { navigate('/cadastro'); setMenuAberto(false); })}
-                style={estiloTalkBack('mb-cadastro', {})}
+                onClick={() => { navigate('/cadastro'); setMenuAberto(false); }}
               >
                 Criar Conta
               </button>
@@ -304,11 +255,30 @@ function ListaMoedas() {
           )}
         </div>
 
-        {/* Desktop Header Actions */}
+    {/* Desktop Header Actions */}
         <div className="lm-header-actions">
-          {/* Instancia única e oficial do ID que a API injeta o HTML */}
+          
+<button
+  onClick={toggleTema}
+  className={`lm-btn-ghost ${isModoIdoso ? 'idoso' : ''}`}
+  title="Alternar Tema"
+>
+  {tema === 'escuro' ? '☀️ Claro' : '🌙 Escuro'}
+</button>
+
+
+          {/* Container nativo do Google Tradutor visível */}
           <div id="google_translate_element" className="lm-google-translate" />
 
+          {/* ── BOTÕES GLOBAIS ── */}
+          <button
+            onClick={() => navigate('/tutorial')}
+            className={`lm-btn-ghost amber ${isModoIdoso ? 'idoso' : ''}`}
+          >
+            📖 Tutorial
+          </button>
+
+          {/* ── BOTÕES DEPENDENTES DE LOGIN ── */}
           {usuario ? (
             <div className="lm-user-container">
               <Link to="/PerfilUsuario" className="lm-user-link">
@@ -320,11 +290,10 @@ function ListaMoedas() {
                 <span className={`lm-user-name ${isModoIdoso ? 'idoso' : ''}`}>{usuario.nome}</span>
               </Link>
               <button
-                onClick={talkClick('sair', 'Sair da conta. Toque novamente para confirmar.', () => {
+                onClick={() => {
                   localStorage.removeItem('usuario');
                   window.location.reload();
-                })}
-                style={estiloTalkBack('sair', {})}
+                }}
                 className={`lm-btn-sair ${isModoIdoso ? 'idoso' : ''}`}
               >
                 Sair
@@ -333,44 +302,29 @@ function ListaMoedas() {
           ) : (
             <>
               <button
-                onClick={talkClick('entrar', 'Entrar na sua conta.', () => navigate('/login'))}
-                style={estiloTalkBack('entrar', {})}
+                onClick={() => navigate('/login')}
                 className={`lm-btn-ghost ${isModoIdoso ? 'idoso' : ''}`}
               >
                 Entrar
               </button>
               <button
-                onClick={talkClick('cadastro', 'Criar conta.', () => navigate('/cadastro'))}
-                style={estiloTalkBack('cadastro', {})}
+                onClick={() => navigate('/cadastro')}
                 className={`lm-btn-ghost blue ${isModoIdoso ? 'idoso' : ''}`}
               >
                 Criar Conta
               </button>
-              <button
-                onClick={talkClick('tutorial', 'Tutorial.', () => navigate('/tutorial'))}
-                style={estiloTalkBack('tutorial', {})}
-                className={`lm-btn-ghost amber ${isModoIdoso ? 'idoso' : ''}`}
-              >
-                📖 Tutorial
-              </button>
-              <button
-                onClick={talkClick('modo-leitura', 'Modo leitura.', () => navigate('/modo-leitura'))}
-                style={estiloTalkBack('modo-leitura', {})}
-                className={`lm-btn-ghost green ${isModoIdoso ? 'idoso' : ''}`}
-              >
-                🔊 Modo Leitura
-              </button>
             </>
           )}
 
+          {/* Botão de Acessibilidade (Sempre visível) */}
           <button
-            onClick={talkClick('modo-idoso', isModoIdoso ? 'Modo padrão.' : 'Modo acessível.', () => toggleModoIdoso())}
-            style={estiloTalkBack('modo-idoso', {})}
+            onClick={() => toggleModoIdoso()}
             className={`lm-btn-modo ${isModoIdoso ? 'ativo' : ''} btn-toggle-modo`}
           >
             {isModoIdoso ? '✨ Modo Padrão' : '👴 Modo Acessível'}
           </button>
         </div>
+
       </header>
 
       {/* ── Seção de Busca Dinâmica ── */}
@@ -391,7 +345,7 @@ function ListaMoedas() {
         </button>
       </div>
 
-      {/* ── Filtros Avançados (Colapsáveis no Mobile) ── */}
+      {/* ── Filtros Avançados ── */}
       <div className={`lm-filters ${mostrarFiltros ? 'expandido' : ''}`}>
         <div className="lm-filter-field">
           <label className={`lm-filter-label ${isModoIdoso ? 'idoso' : ''}`}>Preço mínimo (R$)</label>
@@ -412,8 +366,7 @@ function ListaMoedas() {
         <div className="lm-filter-actions">
           {usuario && (
             <button
-              onClick={talkClick('favoritos-filtro', 'Filtrar favoritos.', () => setApenasFantavoritos(prev => !prev))}
-              style={estiloTalkBack('favoritos-filtro', {})}
+              onClick={() => setApenasFantavoritos(prev => !prev)}
               className={`lm-btn-fav-filter ${apenasFantavoritos ? 'ativo' : ''} ${isModoIdoso ? 'idoso' : ''}`}
             >
               {apenasFantavoritos ? '⭐ Todos' : '⭐ Favoritos'}
@@ -421,16 +374,14 @@ function ListaMoedas() {
           )}
 
           <button
-            onClick={talkClick('filtrar', 'Filtrar moedas.', () => aplicarFiltros())}
-            style={estiloTalkBack('filtrar', {})}
+            onClick={() => aplicarFiltros()}
             className={`lm-btn-filtrar btn-filtrar ${isModoIdoso ? 'idoso' : ''}`}
           >
             Aplicar
           </button>
 
           <button
-            onClick={talkClick('limpar', 'Limpar filtros.', () => limparFiltros())}
-            style={estiloTalkBack('limpar', {})}
+            onClick={() => limparFiltros()}
             className={`lm-btn-limpar btn-limpar ${isModoIdoso ? 'idoso' : ''}`}
           >
             Limpar
@@ -468,9 +419,8 @@ function ListaMoedas() {
               <div className="lm-card-actions">
                 {usuario && (
                   <button
-                    onClick={talkClick(`fav-${moeda.id}`, jaFavorita ? 'Remover favorito' : 'Favoritar', (e2) => toggleFavorito(e2, moeda.id))}
+                    onClick={(e) => toggleFavorito(e, moeda.id)}
                     disabled={favoritando === moeda.id}
-                    style={estiloTalkBack(`fav-${moeda.id}`, {})}
                     className={`lm-btn-fav ${jaFavorita ? 'ativo' : ''} ${isModoIdoso ? 'idoso' : ''}`}
                   >
                     {favoritando === moeda.id ? '⏳' : jaFavorita ? '💔 Remover' : '⭐ Favoritar'}
@@ -478,8 +428,7 @@ function ListaMoedas() {
                 )}
 
                 <button
-                  onClick={talkClick(`detalhe-${moeda.id}`, 'Ver detalhes.', () => navigate(`/moeda/${moeda.id}`))}
-                  style={estiloTalkBack(`detalhe-${moeda.id}`, {})}
+                  onClick={() => navigate(`/moeda/${moeda.id}`)}
                   className={`lm-btn-detail btn-detail ${isModoIdoso ? 'idoso' : ''}`}
                 >
                   Ver Detalhes →
@@ -490,26 +439,44 @@ function ListaMoedas() {
         })}
       </div>
 
-      {/* ── FAB modo leitura ── */}
-      <button
-        onClick={toggleModoLeituraHandler}
-        aria-pressed={modoLeitura}
-        aria-label={modoLeitura ? 'Desativar modo leitura' : 'Ativar modo leitura'}
-        className={`lm-fab ${modoLeitura ? 'ativo' : ''} ${isModoIdoso ? 'idoso' : ''}`}
-      >
-        🔊
-      </button>
 
-      {modoLeitura && (
-        <div className={`lm-fab-legend ${isModoIdoso ? 'idoso' : ''}`}>
-          1º toque = ouvir<br />2º toque = confirmar
+        {/* ── Banner Patrocínio / Créditos CoinGecko (AQUI É O LUGAR CORRETO) ── */}
+      <div className={`lm-sponsor-banner ${isModoIdoso ? 'idoso' : ''}`}>
+        <div className="lm-sponsor-content">
+          <span className="lm-sponsor-text">Dados de mercado fornecidos por</span>
+          <img
+            src="https://static.coingecko.com/s/coingecko-logo-8903d34ce19ca411472aa5f49b6b7722744888be6cd24f92bc3c582eb7277271.png"
+            alt="CoinGecko Logo"
+            className="lm-sponsor-logo"
+          />
+          <p className="lm-sponsor-desc">
+            Explore análises detalhadas do mercado cripto e descubra as melhores corretoras para adquirir seus ativos.
+          </p>
         </div>
-      )}
+        <a
+          href="https://www.coingecko.com/pt"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`lm-btn-sponsor ${isModoIdoso ? 'idoso' : ''}`}
+        >
+          Explorar na CoinGecko 🦎
+        </a>
+      </div>
 
       {/* FAB: Voltar ao Topo */}
       <button
-        onClick={talkClick('btn-voltar-topo', 'Voltar para o topo da página. Toque novamente para subir.', rolarParaOTopo)}
-        style={estiloTalkBack('btn-voltar-topo', {})}
+        onClick={rolarParaOTopo}
+        className={`lm-fab-top ${mostrarVoltarTopo ? 'visivel' : ''} ${isModoIdoso ? 'idoso' : ''}`}
+        aria-label="Voltar para o topo da página"
+        title="Voltar ao topo"
+      >
+        ▲
+      </button>  
+
+
+      {/* FAB: Voltar ao Topo */}
+      <button
+        onClick={rolarParaOTopo}
         className={`lm-fab-top ${mostrarVoltarTopo ? 'visivel' : ''} ${isModoIdoso ? 'idoso' : ''}`}
         aria-label="Voltar para o topo da página"
         title="Voltar ao topo"
@@ -751,22 +718,7 @@ function ListaMoedas() {
         /* Escondidos por padrão no Desktop */
         .lm-menu-btn, .lm-mobile-menu, .lm-menu-backdrop { display: none; }
 
-        /* FABs */
-        .lm-fab {
-          position: fixed; bottom: 24px; right: 24px; width: 64px; height: 64px;
-          border-radius: 50%; background-color: #1e3a5f; color: white; border: 2px solid #3b82f6;
-          cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.4); z-index: 1000;
-        }
-        .lm-fab.ativo { background-color: #4caf50; border-color: #4caf50; }
-        .lm-fab.idoso { width: 84px; height: 84px; font-size: 34px; }
-
-        .lm-fab-legend {
-          position: fixed; bottom: 96px; right: 12px; background-color: #1e1e1e; border: 1px solid #4caf50;
-          border-radius: 10px; padding: 8px 12px; font-size: 12px; color: #4caf50; z-index: 999; text-align: center;
-        }
-        .lm-fab-legend.idoso { bottom: 122px; right: 16px; }
-
+        /* FAB Topo */
         .lm-fab-top {
           position: fixed; bottom: 24px; left: 24px; width: 58px; height: 58px;
           border-radius: 50%; background-color: #222; color: #f59e0b; border: 2px solid #444;
@@ -871,6 +823,59 @@ function ListaMoedas() {
           .lm-filter-actions button { width: 100%; height: 50px; }
         }
 
+
+
+        /* ── Banner CoinGecko ── */
+        .lm-sponsor-banner {
+          margin-top: 40px;
+          background-color: #1e1e1e;
+          border: 1px solid #333;
+          border-radius: 16px;
+          padding: clamp(24px, 4vw, 32px);
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
+        }
+        .lm-sponsor-banner.idoso { border: 2px solid #8cc63f; padding: 32px; }
+
+        .lm-sponsor-content {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          max-width: 600px;
+        }
+
+        .lm-sponsor-text { color: #aaa; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+        
+        /* O filtro invert deixa a logo da CoinGecko branca para combinar com seu fundo escuro */
+        .lm-sponsor-logo { height: 40px; object-fit: contain; align-self: flex-start; margin-bottom: 8px; filter: brightness(0) invert(1); }
+        .lm-sponsor-logo.idoso { height: 60px; }
+
+        .lm-sponsor-desc { margin: 0; color: #ddd; font-size: clamp(14px, 3vw, 16px); line-height: 1.5; }
+        .lm-sponsor-banner.idoso .lm-sponsor-desc { font-size: clamp(18px, 4vw, 22px); }
+
+        .lm-btn-sponsor {
+          background-color: #8cc63f; /* Verde característico da CoinGecko */
+          color: #000;
+          font-weight: bold;
+          text-decoration: none;
+          padding: 16px 24px;
+          border-radius: 12px;
+          font-size: clamp(16px, 3vw, 18px);
+          transition: transform 0.2s, background-color 0.2s;
+          text-align: center;
+        }
+        .lm-btn-sponsor:hover { background-color: #7ab32e; transform: scale(1.05); }
+        .lm-btn-sponsor.idoso { font-size: clamp(20px, 4vw, 24px); padding: 20px 32px; }
+
+        @media (max-width: 768px) {
+          .lm-sponsor-banner { flex-direction: column; text-align: center; }
+          .lm-sponsor-logo { align-self: center; }
+          .lm-btn-sponsor { width: 100%; box-sizing: border-box; }
+        }
+
         @media (max-width: 600px) {
           .lm-grid { grid-template-columns: 1fr; gap: 20px; }
           .lm-root { padding: 16px; }
@@ -878,6 +883,83 @@ function ListaMoedas() {
           .lm-btn-fav, .lm-btn-detail { height: 64px; font-size: 17px; }
           .lm-fab-top { bottom: 16px; left: 16px; }
         }
+      
+        /* =========================================
+           ☀️ TEMA CLARO (Sobrescritas)
+           ========================================= */
+        .lm-root.claro {
+          background-color: #f3f4f6;
+          color: #1f2937;
+        }
+
+        .lm-root.claro .lm-title,
+        .lm-root.claro .lm-user-name,
+        .lm-root.claro .lm-filter-label {
+          color: #1f2937;
+        }
+
+        .lm-root.claro .lm-btn-ghost {
+          color: #4b5563;
+        }
+        .lm-root.claro .lm-btn-ghost:hover { color: #111827; }
+        .lm-root.claro .lm-btn-ghost.blue { color: #2563eb; }
+        .lm-root.claro .lm-btn-ghost.amber { color: #d97706; }
+
+        /* Campos de Busca e Filtros */
+        .lm-root.claro .lm-search,
+        .lm-root.claro .lm-filter-input {
+          background-color: #ffffff;
+          color: #1f2937;
+          border: 1px solid #d1d5db;
+        }
+        .lm-root.claro .lm-search::placeholder,
+        .lm-root.claro .lm-filter-input::placeholder { color: #9ca3af; }
+
+        .lm-root.claro .lm-toggle-filters-btn {
+          background: #e5e7eb; color: #374151; border-color: #d1d5db;
+        }
+        .lm-root.claro .lm-toggle-filters-btn:hover { background: #d1d5db; }
+
+        /* Cards e Banner Patrocínio */
+        .lm-root.claro .lm-card,
+        .lm-root.claro .lm-sponsor-banner {
+          background-color: #ffffff;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .lm-root.claro .lm-card:hover {
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15);
+        }
+        
+        .lm-root.claro .lm-coin-price { color: #16a34a; }
+        .lm-root.claro .lm-sponsor-text { color: #6b7280; }
+        .lm-root.claro .lm-sponsor-desc { color: #374151; }
+        
+        /* Remove o filtro invertido da logo da CoinGecko no modo claro */
+        .lm-root.claro .lm-sponsor-logo { filter: none; }
+
+        /* Botões secundários */
+        .lm-root.claro .lm-btn-detail {
+          background-color: #f3f4f6; color: #374151; border-color: #d1d5db;
+        }
+        .lm-root.claro .lm-btn-detail:hover { background-color: #e5e7eb; border-color: #9ca3af; }
+
+        /* Mobile Menu */
+        .lm-root.claro .lm-mobile-menu {
+          background: #f9fafb; color: #1f2937; box-shadow: -10px 0 30px rgba(0,0,0,0.1);
+        }
+        .lm-root.claro .lm-mobile-menu-header { color: #374151; border-bottom-color: #e5e7eb; }
+        .lm-root.claro .lm-mobile-menu button {
+          background: #ffffff; color: #374151; border-color: #e5e7eb;
+        }
+        .lm-root.claro .lm-menu-user-info-btn { border-color: #e5e7eb !important; background: #ffffff; }
+        .lm-root.claro .lm-btn-limpar { background-color: #e5e7eb; color: #374151; }
+
+        /* Menu Burguer Escuro no Fundo Claro */
+        .lm-root.claro .lm-menu-btn span { background: #1f2937; }
+        .lm-root.claro .lm-menu-btn.aberto span { background: #ef4444; }
+
+
       `}</style>
     </div>
   );

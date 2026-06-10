@@ -22,14 +22,14 @@ export function Login() {
       const response = await api.post('/usuario/login', { email, senha });
 
       localStorage.setItem('usuario', JSON.stringify({
-        id: response.data.id,
-        nome: response.data.nome,
-        email: response.data.email,
-        fotoPerfil: response.data.fotoPerfil,
-        capaPerfil: response.data.capaPerfil,
-        moedasFavoritas: response.data.moeda ?? []
-      }));
-
+    id: response.data.id,
+    nome: response.data.nome,
+    email: response.data.email,
+    token: response.data.token, // ✅ salva o token
+    fotoPerfil: response.data.fotoPerfil,
+    capaPerfil: response.data.capaPerfil,
+    moedasFavoritas: response.data.moeda ?? []
+  }));
       alert('Bem-vindo de volta!');
       navigate('/');
     } catch (err: any) {
